@@ -1,6 +1,5 @@
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
@@ -9,14 +8,14 @@ import java.util.ArrayList;
 /**
  * Created by user_name on 20.02.2017.
  */
-public class Board extends JPanel implements ActionListener {
+public class Board extends JPanel implements Runnable {
 
     private final int ICRAFT_X = 40;
     private final int ICRAFT_Y = 60;
     private final int B_WIDTH = 400;
     private final int B_HEIGHT = 300;
     private final int DELAY = 15;
-    private Timer timer;
+    private Thread animator;
     private Craft craft;
     private ArrayList<Alien> aliens;
     private boolean ingame;
@@ -51,8 +50,7 @@ public class Board extends JPanel implements ActionListener {
             aliens.add(new Alien(p[0],p[1]));
         }
 
-        timer = new Timer(DELAY, this);
-        timer.start();
+
     }
 
     @Override
@@ -94,68 +92,100 @@ public class Board extends JPanel implements ActionListener {
     }
 
     @Override
-    public void actionPerformed(ActionEvent e){
+    public void addNotify(){
+        super.addNotify();
 
-        if(!ingame){
-            timer.stop();
-        }
+        animator = new Thread(this);
+        animator.start();
+    }
 
-        //updates missiles
-        ArrayList<Missile> ms = craft.getMissiles();
-        for(int i = 0; i < ms.size(); i++){
-            Missile m = ms.get(i);
+    @Override
+    public void run(){
+        long beforeTime, timeDiff, sleep;
+        beforeTime = System.currentTimeMillis();
+        while(true){
 
-            if(m.isVisible()){
-                m.move();
-            }else {
-                ms.remove(i);
+
+
+            if(!ingame){
+                break;
             }
-        }
 
-        //updates craft
-        if(craft.isVisible()){
-            craft.move();
-        }
+            //updates missiles
+            ArrayList<Missile> ms = craft.getMissiles();
+            for(int i = 0; i < ms.size(); i++){
+                Missile m = ms.get(i);
 
-        //updates aliens
-        if(aliens.isEmpty()){
-            ingame = false;
-        }else{
-            for (int i = 0; i < aliens.size(); i++){
-                Alien a = aliens.get(i);
-                if(a.isVisible()){
-                    a.move();
-                }else{
-                    aliens.remove(i);
+                if(m.isVisible()){
+                    m.move();
+                }else {
+                    ms.remove(i);
                 }
             }
-        }
 
-        //check collisions
-        Rectangle r3 = craft.getBounds();
-        for(Alien alien : aliens){
-            Rectangle r2 = alien.getBounds();
-
-            if(r3.intersects(r2)){
-                craft.setVisible(false);
-                alien.setVisible(false);
-                ingame = false;
+            //updates craft
+            if(craft.isVisible()){
+                craft.move();
             }
-        }
-        ArrayList<Missile> ms1 = craft.getMissiles();
-        for(Missile m : ms1){
-            Rectangle r1 = m.getBounds();
 
+            //updates aliens
+            if(aliens.isEmpty()){
+                ingame = false;
+            }else{
+                for (int i = 0; i < aliens.size(); i++){
+                    Alien a = aliens.get(i);
+                    if(a.isVisible()){
+                        a.move();
+                    }else{
+                        aliens.remove(i);
+                    }
+                }
+            }
+
+            //check collisions
+            Rectangle r3 = craft.getBounds();
             for(Alien alien : aliens){
                 Rectangle r2 = alien.getBounds();
-                if(r1.intersects(r2)){
-                    m.setVisible(false);
+
+                if(r3.intersects(r2)){
+                    craft.setVisible(false);
                     alien.setVisible(false);
+                    ingame = false;
                 }
             }
-        }
+            ArrayList<Missile> ms1 = craft.getMissiles();
+            for(Missile m : ms1){
+                Rectangle r1 = m.getBounds();
 
-        repaint();
+                for(Alien alien : aliens){
+                    Rectangle r2 = alien.getBounds();
+                    if(r1.intersects(r2)){
+                        m.setVisible(false);
+                        alien.setVisible(false);
+                    }
+                }
+            }
+
+            repaint();
+
+
+
+
+            repaint();
+            timeDiff = System.currentTimeMillis() - beforeTime;
+            sleep = DELAY - timeDiff;
+
+            if(sleep < 0)
+                sleep = 2;
+
+            try{
+                Thread.sleep(sleep);
+            } catch (InterruptedException e){
+                System.out.println("Interrupted: " + e.getMessage());
+            }
+
+            beforeTime = System.currentTimeMillis();
+        }
     }
 
     private class TAdapter extends KeyAdapter{
