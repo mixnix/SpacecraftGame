@@ -47,86 +47,63 @@ public class Board extends JPanel implements ActionListener {
 
         craft = new Craft(ICRAFT_X, ICRAFT_Y);
 
-        initAliens();
+        //aliens initialisation
+        aliens = new ArrayList<Alien>();
+        for(int[] p : pos){
+            aliens.add(new Alien(p[0],p[1]));
+        }
 
         timer = new Timer(DELAY, this);
         timer.start();
     }
 
-    public void initAliens(){
-        aliens = new ArrayList<Alien>();
-
-        for(int[] p : pos){
-            aliens.add(new Alien(p[0],p[1]));
-        }
-    }
     @Override
     public void paintComponent(Graphics g){
         super.paintComponent(g);
 
         if(ingame){
-            drawObjects(g);
+            //draw objects normally
+            if(craft.isVisible()){
+                g.drawImage(craft.getImage(), craft.getX(), craft.getY(), this);
+            }
+
+            ArrayList<Missile> ms = craft.getMissiles();
+
+            for(Missile m : ms){
+                if(m.isVisible()){
+                    g.drawImage(m.getImage(), m.getX(), m.getY(), this);
+                }
+            }
+
+            for(Alien a : aliens){
+                if(a.isVisible()){
+                    g.drawImage(a.getImage(), a.getX(), a.getY(), this);
+                }
+            }
+            g.setColor(Color.white);
+            g.drawString("Aliens left: " + aliens.size(), 5, 15);
         }else{
-            drawGameOver(g);
+            //draw Game Over
+            String msg = "Game Over";
+            Font small = new Font("Helvetica", Font.BOLD, 14);
+            FontMetrics fm = getFontMetrics(small);
+
+            g.setColor(Color.white);
+            g.setFont(small);
+            g.drawString(msg, (B_WIDTH - fm.stringWidth(msg))/2, B_HEIGHT / 2);
         }
         Toolkit.getDefaultToolkit().sync();
-    }
-
-    private void drawObjects(Graphics g){
-        if(craft.isVisible()){
-            g.drawImage(craft.getImage(), craft.getX(), craft.getY(), this);
-        }
-
-        ArrayList<Missile> ms = craft.getMissiles();
-
-        for(Missile m : ms){
-            if(m.isVisible()){
-                g.drawImage(m.getImage(), m.getX(), m.getY(),this);
-            }
-        }
-
-        for(Alien a : aliens){
-            if(a.isVisible()){
-                g.drawImage(a.getImage(), a.getX(), a.getY(), this);
-            }
-        }
-        g.setColor(Color.white);
-        g.drawString("Aliens left: " + aliens.size(), 5, 15);
-    }
-
-    private void drawGameOver(Graphics g){
-        String msg = "Game Over";
-        Font small = new Font("Helvetica", Font.BOLD, 14);
-        FontMetrics fm = getFontMetrics(small);
-
-        g.setColor(Color.white);
-        g.setFont(small);
-        g.drawString(msg, (B_WIDTH - fm.stringWidth(msg))/2, B_HEIGHT / 2);
     }
 
     @Override
     public void actionPerformed(ActionEvent e){
 
-        inGame();
-
-        updateMissiles();
-        updateCraft();
-        updateAliens();
-
-        checkCollisions();
-
-        repaint();
-    }
-
-    private void inGame(){
         if(!ingame){
             timer.stop();
         }
-    }
 
-    private void updateMissiles(){
+        //updates missiles
         ArrayList<Missile> ms = craft.getMissiles();
-
         for(int i = 0; i < ms.size(); i++){
             Missile m = ms.get(i);
 
@@ -136,33 +113,28 @@ public class Board extends JPanel implements ActionListener {
                 ms.remove(i);
             }
         }
-    }
 
-    private void updateCraft(){
+        //updates craft
         if(craft.isVisible()){
             craft.move();
         }
-    }
 
-    private void updateAliens(){
+        //updates aliens
         if(aliens.isEmpty()){
             ingame = false;
-            return;
-        }
-
-        for (int i = 0; i < aliens.size(); i++){
-            Alien a = aliens.get(i);
-            if(a.isVisible()){
-                a.move();
-            }else{
-                aliens.remove(i);
+        }else{
+            for (int i = 0; i < aliens.size(); i++){
+                Alien a = aliens.get(i);
+                if(a.isVisible()){
+                    a.move();
+                }else{
+                    aliens.remove(i);
+                }
             }
         }
-    }
 
-    public void checkCollisions(){
+        //check collisions
         Rectangle r3 = craft.getBounds();
-
         for(Alien alien : aliens){
             Rectangle r2 = alien.getBounds();
 
@@ -172,10 +144,8 @@ public class Board extends JPanel implements ActionListener {
                 ingame = false;
             }
         }
-
-        ArrayList<Missile> ms = craft.getMissiles();
-
-        for(Missile m : ms){
+        ArrayList<Missile> ms1 = craft.getMissiles();
+        for(Missile m : ms1){
             Rectangle r1 = m.getBounds();
 
             for(Alien alien : aliens){
@@ -186,6 +156,8 @@ public class Board extends JPanel implements ActionListener {
                 }
             }
         }
+
+        repaint();
     }
 
     private class TAdapter extends KeyAdapter{
